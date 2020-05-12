@@ -6,7 +6,7 @@ package hotkey_test
 
 import (
 	"fmt"
-	"hotkey"
+	"github.com/fy0/hotkey"
 )
 
 func ExampleRegister() {

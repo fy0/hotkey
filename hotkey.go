@@ -6,7 +6,7 @@
 package hotkey
 
 import (
-	"hotkey/win"
+	"github.com/fy0/hotkey/win"
 )
 
 // A hotkey.Id is a identity number of registered hotkey.

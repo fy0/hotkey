@@ -1,4 +1,4 @@
-module hotkey
+module github.com/fy0/hotkey
 
 go 1.12
 
