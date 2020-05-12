@@ -5,7 +5,9 @@
 package hotkey
 
 type server interface {
-	register(fsModifiers, vk uint32, handle func()) (Id, error)
+	register(fsModifiers, vk uint32, callback func()) (Id, error)
+	registerWithHwnd(hwnd uintptr, fsModifiers, vk uint32, callback func()) (Id, error)
+
 	unregister(id int32)
 	stop()
 	isStop() bool

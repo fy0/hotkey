@@ -25,6 +25,7 @@ type message struct {
 	msgType         int
 	id              int32
 	fsModifiers, vk uint32
+	hwnd            uintptr
 
 	// Channels as result notifier
 	chId  chan Id
@@ -34,6 +35,7 @@ type message struct {
 type serverImpl struct {
 	chMsg     chan *message
 	id2handle map[Id]func()
+	id2hwnd   map[Id]uintptr
 	threadId  uint32
 	stopFlag  bool
 
@@ -75,26 +77,28 @@ func init() {
 				select {
 				// Has message
 				case msg := <-svr.chMsg:
+					hwnd := win.HWND(msg.hwnd)
 					svr.debug.Log("Received message in hotkey's loop", msg)
+
 					switch msg.msgType {
 					case msgRegister:
 						svr.debug.Log("Register message", msg)
 						id := <-globalId
-						if !hotkey_win.RegisterHotKey(0, id, msg.fsModifiers, msg.vk) {
+						if !hotkey_win.RegisterHotKey(hwnd, id, msg.fsModifiers, msg.vk) {
 							// TODO: Get system error message
 							msg.chErr <- fmt.Errorf("failed to register hotkey {mods=%d, vk=%d}", msg.fsModifiers, msg.vk)
 							break
 						}
 						defer func() {
 							svr.debug.Log("defer Unregister", id)
-							hotkey_win.UnregisterHotKey(0, id)
+							hotkey_win.UnregisterHotKey(hwnd, id)
 						}()
 						msg.chId <- Id(id)
 						runtime.Gosched()
 
 					case msgUnregister:
 						svr.debug.Log("Unregister message", msg)
-						hotkey_win.UnregisterHotKey(0, msg.id)
+						hotkey_win.UnregisterHotKey(hwnd, msg.id)
 						msg.chErr <- nil
 
 					case msgStop:
@@ -140,6 +144,34 @@ func init() {
 
 		return svr
 	}
+}
+
+func (svr *serverImpl) registerWithHwnd(hwnd uintptr, fsModifiers, vk uint32, callback func()) (id Id, err error) {
+	if svr.stopFlag {
+		err = fmt.Errorf("already stoped hotkey's loop")
+		return
+	}
+
+	var msg message
+	msg.msgType = msgRegister
+	msg.fsModifiers = fsModifiers
+	msg.vk = vk
+	msg.hwnd = hwnd
+
+	msg.chId = make(chan Id)
+	msg.chErr = make(chan error)
+
+	svr.chMsg <- &msg
+	hotkey_win.PostThreadMessage(svr.threadId, win.WM_USER, 0, 0)
+
+	// Wait
+	select {
+	case id = <-msg.chId:
+		svr.debug.Log("Register success", id)
+		svr.id2handle[id] = callback
+	case err = <-msg.chErr:
+	}
+	return
 }
 
 func (svr *serverImpl) register(fsModifiers, vk uint32, handle func()) (id Id, err error) {

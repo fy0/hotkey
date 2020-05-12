@@ -5,7 +5,9 @@
 // Package hotkey provides HotKey for Go Language.
 package hotkey
 
-import "github.com/MakeNowJust/hotkey/win"
+import (
+	"hotkey/win"
+)
 
 // A hotkey.Id is a identity number of registered hotkey.
 type Id int32
@@ -40,8 +42,19 @@ func New() (man *Manager) {
 //
 // vk is a hotkey's virtual key code. See also
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-func (man *Manager) Register(mods Modifier, vk uint32, handle func()) (id Id, err error) {
-	id, err = man.svr.register(uint32(mods), vk, handle)
+func (man *Manager) Register(mods Modifier, vk uint32, callback func()) (id Id, err error) {
+	id, err = man.svr.register(uint32(mods), vk, callback)
+	return
+}
+
+// Register a hotkey with modifiers and vk on man.
+//
+// mods are hotkey's modifiers such as hotkey.Alt, hotkey.Ctrl+hotkey.Shift.
+//
+// vk is a hotkey's virtual key code. See also
+// http://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+func (man *Manager) RegisterWithHwnd(hwnd uintptr, mods Modifier, vk uint32, callback func()) (id Id, err error) {
+	id, err = man.svr.registerWithHwnd(hwnd, uint32(mods), vk, callback)
 	return
 }
 
