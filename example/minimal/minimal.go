@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/MakeNowJust/hotkey"
+	"hotkey"
 )
 
 func main() {
